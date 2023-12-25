@@ -298,6 +298,56 @@ class ImageLabel(QLabel):
         else:
             return image_array
 
+    # PF
+    def apply_blur(self, image_array):
+        if self.blur > 0:
+            return cv2.GaussianBlur(image_array, (0, 0), self.blur/10)
+        else:
+            return image_array
+
+    def apply_bloom(self, image_array):
+        if self.bloom != 0:
+            blurred = cv2.GaussianBlur(image_array, (0, 0), 8)
+            result = cv2.addWeighted(image_array, 1 - self.bloom/200, blurred, self.bloom/50, 0)
+            return result
+        else:
+            return image_array
+
+    def apply_grain(self, image_array):
+        if self.grain != 0:
+            bgr_image = image_array[:, :, :3]
+            alpha_channel = image_array[:, :, 3]
+
+            gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+            noise = np.random.normal(0, self.grain/2, gray_image.shape)
+            noise = cv2.GaussianBlur(noise, (0, 0), 0.5)
+            noise = np.expand_dims(noise, axis=-1)
+            noise = np.repeat(noise, 3, axis=-1)
+            noisy_bgr_image = bgr_image + noise
+            noisy_bgr_image = np.clip(noisy_bgr_image, 0, 255).astype(np.uint8)
+            corrected_image_array = np.dstack((noisy_bgr_image, alpha_channel))
+            return corrected_image_array
+        else:
+            return image_array
+
+    def apply_vignette(self, image_array):
+        if self.vignette != 0:
+            rows, cols = image_array.shape[:2]
+
+            X_resultant_kernel = cv2.getGaussianKernel(cols, 320)
+            Y_resultant_kernel = cv2.getGaussianKernel(rows, 200)
+            resultant_kernel = Y_resultant_kernel * X_resultant_kernel.T
+            mask = 255 * resultant_kernel / np.linalg.norm(resultant_kernel)
+            output = np.copy(image_array)
+            for i in range(3):
+                output[:, :, i] = output[:, :, i] * mask
+            if self.vignette > 0:
+                output = cv2.addWeighted(image_array, 1 + self.vignette / 100, output, -self.vignette / 100, 0)
+            else:
+                output = cv2.addWeighted(image_array, 1 + self.vignette / 100, output, -self.vignette / 60, 0)
+            return output
+        else:
+            return image_array
 
 
 class Ui_Form(object):
@@ -1765,7 +1815,6 @@ class Ui_Form(object):
         except:
             self.dragDrop_label.vignette = 0
             self.vignette_slider.setValue(0)
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
