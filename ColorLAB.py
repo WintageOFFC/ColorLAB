@@ -1278,6 +1278,39 @@ class Ui_Form(object):
         self.dragDrop_label.save_image()
         self.author_label.setText("ColorLAB (utility version 2.0.0) from Bykov I.I.")
 
+    # WB
+    def update_temperature(self, value):
+        self.dragDrop_label.temperature = value
+        self.temp_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_temperature(self):
+        try:
+            value = int(self.temp_parm.text())
+            self.dragDrop_label.temperature = value
+            self.temperature_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.temperature = 0
+            self.temperature_slider.setValue(0)
+
+    def update_tint(self, value):
+        self.dragDrop_label.tint = value
+        self.tint_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_tint(self):
+        try:
+            value = int(self.tint_parm.text())
+            self.dragDrop_label.tint = value
+            self.tint_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.tint = 0
+            self.tint_slider.setValue(0)
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     Form = QtWidgets.QWidget()
