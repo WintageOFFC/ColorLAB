@@ -1311,6 +1311,103 @@ class Ui_Form(object):
             self.dragDrop_label.tint = 0
             self.tint_slider.setValue(0)
 
+    # BC
+    def update_exposure(self, value):
+        self.dragDrop_label.exposure = value
+        self.expo_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_exposure(self):
+        try:
+            value = int(self.expo_parm.text())
+            self.dragDrop_label.exposure = value
+            self.exposure_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.exposure = 0
+            self.exposure_slider.setValue(0)
+
+    def update_contrast(self, value):
+        self.dragDrop_label.contrast = value
+        self.cont_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_contrast(self):
+        try:
+            value = int(self.cont_parm.text())
+            self.dragDrop_label.contrast = value
+            self.contrast_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.contrast = 0
+            self.contrast_slider.setValue(0)
+
+    def update_white(self, value):
+        self.dragDrop_label.white = value
+        self.white_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_white(self):
+        try:
+            value = int(self.white_parm.text())
+            self.dragDrop_label.white = value
+            self.white_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.white = 0
+            self.white_slider.setValue(0)
+
+    def update_black(self, value):
+        self.dragDrop_label.black = value
+        self.black_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_black(self):
+        try:
+            value = int(self.black_parm.text())
+            self.dragDrop_label.black = value
+            self.black_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.black = 0
+            self.black_slider.setValue(0)
+
+    def update_sharpness(self, value):
+        self.dragDrop_label.sharpness = value
+        self.sharp_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_sharpness(self):
+        try:
+            value = int(self.sharp_parm.text())
+            self.dragDrop_label.sharpness = value
+            self.sharpness_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.sharpness = 0
+            self.sharpness_slider.setValue(0)
+
+    def update_saturation(self, value):
+        self.dragDrop_label.saturation = value
+        self.sat_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_saturation(self):
+        try:
+            value = int(self.sat_parm.text())
+            self.dragDrop_label.saturation = value
+            self.stauration_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.saturation = 0
+            self.stauration_slider.setValue(0)
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     Form = QtWidgets.QWidget()
