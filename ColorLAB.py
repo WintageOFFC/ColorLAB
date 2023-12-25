@@ -1408,6 +1408,72 @@ class Ui_Form(object):
             self.dragDrop_label.saturation = 0
             self.stauration_slider.setValue(0)
 
+    # PF
+    def update_blur(self, value):
+        self.dragDrop_label.blur = value
+        self.blur_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_blur(self):
+        try:
+            value = int(self.blur_parm.text())
+            self.dragDrop_label.blur = value
+            self.blur_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.blur = 0
+            self.blur_slider.setValue(0)
+
+    def update_bloom(self, value):
+        self.dragDrop_label.bloom = value
+        self.bloom_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_bloom(self):
+        try:
+            value = int(self.bloom_parm.text())
+            self.dragDrop_label.bloom = value
+            self.bloom_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.bloom = 0
+            self.bloom_slider.setValue(0)
+
+    def update_grain(self, value):
+        self.dragDrop_label.grain = value
+        self.grain_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_grain(self):
+        try:
+            value = int(self.grain_parm.text())
+            self.dragDrop_label.grain = value
+            self.grain_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.grain = 0
+            self.grain_slider.setValue(0)
+
+    def update_vignette(self, value):
+        self.dragDrop_label.vignette = value
+        self.vignette_parm.setText(str(value))
+        self.dragDrop_label.update_image()
+        pass
+
+    def enter_update_vignette(self):
+        try:
+            value = int(self.vignette_parm.text())
+            self.dragDrop_label.vignette = value
+            self.vignette_slider.setValue(value)
+            self.dragDrop_label.update_image()
+        except:
+            self.dragDrop_label.vignette = 0
+            self.vignette_slider.setValue(0)
+
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     Form = QtWidgets.QWidget()
