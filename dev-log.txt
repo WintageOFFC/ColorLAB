@@ -1,0 +1,1 @@
+LOG 1 : The graphical interface of the application has been fully implemented.
