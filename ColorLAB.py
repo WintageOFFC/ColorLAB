@@ -74,7 +74,21 @@ class ImageLabel(QLabel):
         self.image_array = image
         self.update_image()
 
+    def dragEnterEvent(self, event):
+        mime_data = event.mimeData()
 
+        # перетаскиваемые данные содержат изображение
+        if mime_data.hasUrls() and len(mime_data.urls()) == 1:
+            url = mime_data.urls()[0]
+            if url.isLocalFile():
+                event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        image_path = event.mimeData().urls()[0].toLocalFile()
+        try:
+            self.image_procces(image_path)
+        except Exception as e:
+            self.show_error_message(f"The request cannot be executed, this is an incorrect file type.", 0)
 
     def load_image(self, image_path):
         try:
