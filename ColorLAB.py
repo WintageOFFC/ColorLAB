@@ -1208,7 +1208,7 @@ class Ui_Form(object):
         self.diogram_label.setObjectName("diogram_label")
 
         # Set image to the QLabel
-        pixmap = QtGui.QPixmap("icons\\plane.png")  # Replace with the actual path to your image
+        pixmap = QtGui.QPixmap("gui-resources\\plane.png")  # Replace with the actual path to your image
         self.diogram_label.setPixmap(pixmap)
 
         # Diogram end };
@@ -1244,7 +1244,7 @@ class Ui_Form(object):
 
     def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowIcon(QIcon("icons\\colorlab1111.png"))
+        Form.setWindowIcon(QIcon("gui-resources\\colorlab1111.png"))
         Form.setWindowTitle(_translate("Form", "ColorLAB (Utility)"))
         self.author_label.setText(_translate("Form", "ColorLAB (utility version 2.0.0) from Bykov I.I."))
 
