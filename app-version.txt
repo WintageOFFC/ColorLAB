@@ -1,1 +1,1 @@
-ColorLAB application version 1.0.0
+ColorLAB application version 2.0.0
