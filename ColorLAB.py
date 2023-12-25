@@ -4,7 +4,174 @@ import sys
 
 
 class ImageLabel(QLabel):
-    def __init__(self): pass
+    def __init__(self):
+        super().__init__()
+
+        font = self.font()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(True)
+        font.setWeight(75)
+        self.setFont(font)
+        self.setAcceptDrops(True)
+        self.setLayoutDirection(Qt.LeftToRight)
+        self.setStyleSheet("QLabel {\n"
+                           "    color:  rgb(64, 64, 64);\n"
+                           "    border: 2px dashed solid rgb(50, 50, 50);\n"
+                           "    border-radius: 8px; \n"
+                           "}\n"
+                           "")
+        self.setAlignment(Qt.AlignCenter)
+        self.setObjectName("dragDrop_label")
+
+        # Инициализируем поля
+        self.image_array = None
+        self.image_array_full = None
+
+        self.temperature = 0
+        self.tint = 0
+
+        self.exposure = 0
+        self.contrast = 0
+        self.white = 0
+        self.black = 0
+        self.sharpness = 0
+        self.saturation = 0
+
+        self.blur = 0
+        self.bloom = 0
+        self.grain = 0
+        self.vignette = 0
+
+    def open_image(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Открыть изображение", "",
+                                                   "Images (*.png *.jpg *.bmp *.tif *.tiff *.jpeg);;All Files (*)",
+                                                   options=options)
+
+        if file_name:
+            self.load_image(file_name)
+
+    def image_procces(self, image_path):
+        image = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+        self.image_array_full = image
+
+        aspect_ratio = image.shape[1] / image.shape[0]
+        if image.shape[1] * image.shape[0] > 490_000 or (image.shape[1] > 700 or image.shape[0] > 700):
+            # Масштаб с учетом высоты пикселей
+            if aspect_ratio <= 1.54:
+                aspect_ratio = image.shape[1] / image.shape[0]
+                new_height = 700
+                new_width = int(new_height * aspect_ratio)
+                image = cv2.resize(image, (new_width, new_height))
+            else:
+                aspect_ratio = image.shape[0] / image.shape[1]
+                new_width = 1080
+                new_height = int(new_width * aspect_ratio)
+                image = cv2.resize(image, (new_width, new_height))
+
+        self.image_array = image
+        self.update_image()
+
+
+
+    def load_image(self, image_path):
+        try:
+            self.image_procces(image_path)
+        except Exception as e:
+            self.show_error_message(f"Destructive failure, this is an incorrect file type.", 1)
+            self.open_image()
+
+    def save_image(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getSaveFileName(self, "Сохранить изображение", "",
+                                                   "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
+        if file_name:
+            if self.image_array_full is not None:
+                image_array = self.correction_applay(self.image_array_full)
+                image_pil = Image.fromarray(image_array, 'RGBA')
+                image_pil.save(file_name, 'PNG')
+            else:
+                self.show_error_message("The working space of the application does \nnot contain an image.", 1)
+
+    def show_error_message(self, message, qicon):
+        icon = [QMessageBox.Critical, QMessageBox.Warning]
+        error_box = QMessageBox(self)
+
+        style_sheet = """
+                QLabel {
+                    color: rgb(0, 0, 0);
+                    background-color: white;
+                    border: none;
+                }
+
+                QMessageBox {
+                    background-color: white;
+                    color: red;
+                }
+                QMessageBox QPushButton {
+                    width: 86px;
+                    height: 18px;
+                    background-color: rgb(225, 225, 225);
+                    color: black;
+                    border: 2px solid rgb(0, 120, 215);
+                }
+                QMessageBox QPushButton:hover {
+                    width: 86px;
+                    height: 18px;
+                    background-color: rgb(229, 241, 251);
+                    color: black;
+                    border: 1px solid rgb(0, 120, 215);
+                }
+                QMessageBox QPushButton:pressed {
+                    width: 86px;
+                    height: 18px;
+                    background-color: rgb(219, 231, 241);
+                    color: black;
+                    border: 1px solid rgb(0, 120, 215);
+                }
+            """
+        error_box.setStyleSheet(style_sheet)
+        error_box.setIcon(icon[qicon])
+        error_box.setWindowTitle("ColorLAB (Utility)")
+        error_box.setText(message)
+        error_box.setWindowIcon(QIcon("icons\\colorlab1111.png"))
+        error_box.setStandardButtons(QMessageBox.Ok)
+        error_box.exec_()
+
+    def correction_applay(self, image_array):
+        # Копируем массив изображения
+        corrected_image_array = image_array.copy()
+
+        # Применяем коррекцию параметров
+        corrected_image_array = self.apply_temperature(corrected_image_array)
+        corrected_image_array = self.apply_tint(corrected_image_array)
+
+        corrected_image_array = self.apply_exposure(corrected_image_array)
+        corrected_image_array = self.apply_contrast(corrected_image_array)
+        corrected_image_array = self.apply_white(corrected_image_array)
+        corrected_image_array = self.apply_black(corrected_image_array)
+        corrected_image_array = self.apply_sharpness(corrected_image_array)
+        corrected_image_array = self.apply_saturation(corrected_image_array)
+
+        corrected_image_array = self.apply_blur(corrected_image_array)
+        corrected_image_array = self.apply_bloom(corrected_image_array)
+        corrected_image_array = self.apply_grain(corrected_image_array)
+        corrected_image_array = self.apply_vignette(corrected_image_array)
+
+        return corrected_image_array
+
+    def update_image(self):
+        if self.image_array is not None:
+            corrected_image_array = self.correction_applay(self.image_array)
+
+            # массив в Qt и альфой
+            height, width, channel = corrected_image_array.shape
+            bytes_per_line = 4 * width  # 4 канала для RGBA
+            q_image = QImage(corrected_image_array.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
+
+            self.setPixmap(QPixmap.fromImage(q_image))
 
 
 class Ui_Form(object):
