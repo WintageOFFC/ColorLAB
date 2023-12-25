@@ -1382,7 +1382,31 @@ class Ui_Form(object):
 
         self.retranslateUi(Form)
         QtCore.QMetaObject.connectSlotsByName(Form)
-
+    
+    def retranslateUi(self, Form):
+        _translate = QtCore.QCoreApplication.translate
+        Form.setWindowTitle(_translate("Form", "ColorLAB (Mini)"))
+        self.r_label.setText(_translate("Form", "R: ---"))
+        self.g_label.setText(_translate("Form", "G: ---"))
+        self.b_label.setText(_translate("Form", "B: ---"))
+        self.blur_label.setText(_translate("Form", "Blur"))
+        self.bloom_label.setText(_translate("Form", "Bloom"))
+        self.grain_label.setText(_translate("Form", "Grain"))
+        self.vignette_label.setText(_translate("Form", "Vignette"))
+        self.temperature_label.setText(_translate("Form", "Temperature"))
+        self.tint_label.setText(_translate("Form", "Tint"))
+        self.saturation_label.setText(_translate("Form", "Saturation"))
+        self.exposure_label.setText(_translate("Form", "Exposure"))
+        self.sharpness_label.setText(_translate("Form", "Sharpness"))
+        self.white_label.setText(_translate("Form", "White"))
+        self.black_label.setText(_translate("Form", "Black"))
+        self.contrast_label.setText(_translate("Form", "Contrast"))
+        self.open_button.setText(_translate("Form", "Open"))
+        self.save_button.setText(_translate("Form", "Save as"))
+        self.pf_label.setText(_translate("Form", "POST FX"))
+        self.wb_label.setText(_translate("Form", "WHITE BALANCE"))
+        self.bc_label.setText(_translate("Form", "BASIC CORRECTION"))
+        self.dragDrop_label.setText(_translate("Form", "<html><head/><body><p><span style=\" font-size:xx-large;\">DRAG &amp; DROP</span><br/>(*.png *.jpg *.CR2 *.dng *.tiff *.BMP)</p></body></html>"))
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
