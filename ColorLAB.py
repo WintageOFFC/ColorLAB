@@ -1,6 +1,11 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
 import cv2
 import sys
+from PIL import Image
+import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QLabel, QFileDialog, QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImage, QIcon
 
 
 class ImageLabel(QLabel):
@@ -186,6 +191,163 @@ class ImageLabel(QLabel):
             q_image = QImage(corrected_image_array.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
 
             self.setPixmap(QPixmap.fromImage(q_image))
+
+    # WB
+    def apply_temperature(self, image_array):
+        if self.temperature != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            if self.temperature > 0:
+                kelvin_matrix = np.array([[1, -0.1 * (self.temperature/20), 0], [0, 1, 0], [0, 0.1 * (self.temperature/10), 1]])
+            else:
+                kelvin_matrix = np.array([[1, -0.2 * (self.temperature/15), 0], [0, 1, 0], [0, 0, 1]])
+            image_rgb = cv2.transform(image_rgb, kelvin_matrix)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    def apply_tint(self, image_array):
+        if self.tint != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            if self.tint > 0:
+                tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint/50)], [0.2 * (self.tint/50), 0, 1]])
+            else:
+                tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint / 50)], [0, 0, 1]])
+            image_rgb = cv2.transform(image_rgb, tint_matrix)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    # BC
+    def apply_exposure(self, image_array):
+        if self.exposure != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            image_rgb = cv2.convertScaleAbs(image_rgb, alpha=(1 + self.exposure / 100), beta=0)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    def apply_contrast(self, image_array):
+        if self.contrast != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 32, 64, 96, 128, 160, 192, 224, 255]
+            lut_out = [0, 32-self.contrast/6.25, 64-self.contrast/12.5, 96-self.contrast/25, 128,
+                       160+self.contrast/25, 192+self.contrast/12.5, 224+self.contrast/6.25, 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_white(self, image_array):
+        if self.white != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 51, 102, 153, 204, 255]
+            lut_out = [0, 51, 102+(self.white/10), 153+(self.white/5), 204+(self.white/4), 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_black(self, image_array):
+        if self.black != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 51, 102, 153, 204, 255]
+            lut_out = [0, 51 + (self.black / 10), 102 + (self.black / 15), 153 + (self.black / 25), 204, 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_sharpness(self, image_array):
+        if self.sharpness != 0:
+            blurred = cv2.GaussianBlur(image_array, (0, 0), 1)
+            return cv2.addWeighted(image_array, 1 + self.sharpness / 100, blurred, -self.sharpness / 100, 0)
+        else:
+            return image_array
+
+    def apply_saturation(self, image_array):
+        if self.saturation != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_hsv = cv2.cvtColor(cv2.merge((r, g, b)), cv2.COLOR_BGR2HSV)
+            image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] * (1 + self.saturation/100), 0, 255)
+            b, g, r = cv2.split(cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR))
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    # PF
+    def apply_blur(self, image_array):
+        if self.blur > 0:
+            return cv2.GaussianBlur(image_array, (0, 0), self.blur/10)
+        else:
+            return image_array
+
+    def apply_bloom(self, image_array):
+        if self.bloom != 0:
+            blurred = cv2.GaussianBlur(image_array, (0, 0), 8)
+            result = cv2.addWeighted(image_array, 1 - self.bloom/200, blurred, self.bloom/50, 0)
+            return result
+        else:
+            return image_array
+
+    def apply_grain(self, image_array):
+        if self.grain != 0:
+            bgr_image = image_array[:, :, :3]
+            alpha_channel = image_array[:, :, 3]
+
+            gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+            noise = np.random.normal(0, self.grain/2, gray_image.shape)
+            noise = cv2.GaussianBlur(noise, (0, 0), 0.5)
+            noise = np.expand_dims(noise, axis=-1)
+            noise = np.repeat(noise, 3, axis=-1)
+            noisy_bgr_image = bgr_image + noise
+            noisy_bgr_image = np.clip(noisy_bgr_image, 0, 255).astype(np.uint8)
+            corrected_image_array = np.dstack((noisy_bgr_image, alpha_channel))
+            return corrected_image_array
+        else:
+            return image_array
+
+    def apply_vignette(self, image_array):
+        if self.vignette != 0:
+            rows, cols = image_array.shape[:2]
+
+            X_resultant_kernel = cv2.getGaussianKernel(cols, 320)
+            Y_resultant_kernel = cv2.getGaussianKernel(rows, 200)
+            resultant_kernel = Y_resultant_kernel * X_resultant_kernel.T
+            mask = 255 * resultant_kernel / np.linalg.norm(resultant_kernel)
+            output = np.copy(image_array)
+            for i in range(3):
+                output[:, :, i] = output[:, :, i] * mask
+            if self.vignette > 0:
+                output = cv2.addWeighted(image_array, 1 + self.vignette / 100, output, -self.vignette / 100, 0)
+            else:
+                output = cv2.addWeighted(image_array, 1 + self.vignette / 100, output, -self.vignette / 60, 0)
+            return output
+        else:
+            return image_array
 
 
 class Ui_Form(object):
@@ -1653,7 +1815,6 @@ class Ui_Form(object):
         except:
             self.dragDrop_label.vignette = 0
             self.vignette_slider.setValue(0)
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
