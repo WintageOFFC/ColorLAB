@@ -155,7 +155,7 @@ class ImageLabel(QLabel):
         error_box.setIcon(icon[qicon])
         error_box.setWindowTitle("ColorLAB (Utility)")
         error_box.setText(message)
-        error_box.setWindowIcon(QIcon("icons\\colorlab1111.png"))
+        error_box.setWindowIcon(QIcon("gui-resources\\colorlab1111.png"))
         error_box.setStandardButtons(QMessageBox.Ok)
         error_box.exec_()
 
@@ -1819,7 +1819,6 @@ class Ui_Form(object):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     Form = QtWidgets.QWidget()
-    ui = Ui_Form()
-    ui.setupUi(Form)
+    ui = Ui_Form(Form)
     Form.show()
     sys.exit(app.exec_())
