@@ -187,6 +187,36 @@ class ImageLabel(QLabel):
 
             self.setPixmap(QPixmap.fromImage(q_image))
 
+    # WB
+    def apply_temperature(self, image_array):
+        if self.temperature != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            if self.temperature > 0:
+                kelvin_matrix = np.array([[1, -0.1 * (self.temperature/20), 0], [0, 1, 0], [0, 0.1 * (self.temperature/10), 1]])
+            else:
+                kelvin_matrix = np.array([[1, -0.2 * (self.temperature/15), 0], [0, 1, 0], [0, 0, 1]])
+            image_rgb = cv2.transform(image_rgb, kelvin_matrix)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    def apply_tint(self, image_array):
+        if self.tint != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            if self.tint > 0:
+                tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint/50)], [0.2 * (self.tint/50), 0, 1]])
+            else:
+                tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint / 50)], [0, 0, 1]])
+            image_rgb = cv2.transform(image_rgb, tint_matrix)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+
 
 class Ui_Form(object):
     def __init__(self, Form):
