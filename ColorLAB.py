@@ -1,6 +1,11 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
 import cv2
 import sys
+from PIL import Image
+import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QLabel, QFileDialog, QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImage, QIcon
 
 
 class ImageLabel(QLabel):
@@ -212,6 +217,83 @@ class ImageLabel(QLabel):
                 tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint / 50)], [0, 0, 1]])
             image_rgb = cv2.transform(image_rgb, tint_matrix)
             b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    # BC
+    def apply_exposure(self, image_array):
+        if self.exposure != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            image_rgb = cv2.convertScaleAbs(image_rgb, alpha=(1 + self.exposure / 100), beta=0)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    def apply_contrast(self, image_array):
+        if self.contrast != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 32, 64, 96, 128, 160, 192, 224, 255]
+            lut_out = [0, 32-self.contrast/6.25, 64-self.contrast/12.5, 96-self.contrast/25, 128,
+                       160+self.contrast/25, 192+self.contrast/12.5, 224+self.contrast/6.25, 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_white(self, image_array):
+        if self.white != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 51, 102, 153, 204, 255]
+            lut_out = [0, 51, 102+(self.white/10), 153+(self.white/5), 204+(self.white/4), 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_black(self, image_array):
+        if self.black != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 51, 102, 153, 204, 255]
+            lut_out = [0, 51 + (self.black / 10), 102 + (self.black / 15), 153 + (self.black / 25), 204, 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_sharpness(self, image_array):
+        if self.sharpness != 0:
+            blurred = cv2.GaussianBlur(image_array, (0, 0), 1)
+            return cv2.addWeighted(image_array, 1 + self.sharpness / 100, blurred, -self.sharpness / 100, 0)
+        else:
+            return image_array
+
+    def apply_saturation(self, image_array):
+        if self.saturation != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_hsv = cv2.cvtColor(cv2.merge((r, g, b)), cv2.COLOR_BGR2HSV)
+            image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] * (1 + self.saturation/100), 0, 255)
+            b, g, r = cv2.split(cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR))
             return cv2.merge((r, g, b, a))
         else:
             return image_array
