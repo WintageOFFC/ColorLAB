@@ -1,10 +1,353 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
 import cv2
 import sys
+from PIL import Image
+import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QLabel, QFileDialog, QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPixmap, QImage, QIcon
 
 
 class ImageLabel(QLabel):
-    def __init__(self): pass
+    def __init__(self):
+        super().__init__()
+
+        font = self.font()
+        font.setFamily("Arial")
+        font.setPointSize(10)
+        font.setBold(True)
+        font.setWeight(75)
+        self.setFont(font)
+        self.setAcceptDrops(True)
+        self.setLayoutDirection(Qt.LeftToRight)
+        self.setStyleSheet("QLabel {\n"
+                           "    color:  rgb(64, 64, 64);\n"
+                           "    border: 2px dashed solid rgb(50, 50, 50);\n"
+                           "    border-radius: 8px; \n"
+                           "}\n"
+                           "")
+        self.setAlignment(Qt.AlignCenter)
+        self.setObjectName("dragDrop_label")
+
+        # Инициализируем поля
+        self.image_array = None
+        self.image_array_full = None
+
+        self.temperature = 0
+        self.tint = 0
+
+        self.exposure = 0
+        self.contrast = 0
+        self.white = 0
+        self.black = 0
+        self.sharpness = 0
+        self.saturation = 0
+
+        self.blur = 0
+        self.bloom = 0
+        self.grain = 0
+        self.vignette = 0
+
+    def open_image(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getOpenFileName(self, "Открыть изображение", "",
+                                                   "Images (*.png *.jpg *.bmp *.tif *.tiff *.jpeg);;All Files (*)",
+                                                   options=options)
+
+        if file_name:
+            self.load_image(file_name)
+
+    def image_procces(self, image_path):
+        image = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+        image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGBA)
+        self.image_array_full = image
+
+        aspect_ratio = image.shape[1] / image.shape[0]
+        if image.shape[1] * image.shape[0] > 490_000 or (image.shape[1] > 700 or image.shape[0] > 700):
+            # Масштаб с учетом высоты пикселей
+            if aspect_ratio <= 1.54:
+                aspect_ratio = image.shape[1] / image.shape[0]
+                new_height = 700
+                new_width = int(new_height * aspect_ratio)
+                image = cv2.resize(image, (new_width, new_height))
+            else:
+                aspect_ratio = image.shape[0] / image.shape[1]
+                new_width = 1080
+                new_height = int(new_width * aspect_ratio)
+                image = cv2.resize(image, (new_width, new_height))
+
+        self.image_array = image
+        self.update_image()
+
+    def dragEnterEvent(self, event):
+        mime_data = event.mimeData()
+
+        # перетаскиваемые данные содержат изображение
+        if mime_data.hasUrls() and len(mime_data.urls()) == 1:
+            url = mime_data.urls()[0]
+            if url.isLocalFile():
+                event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        image_path = event.mimeData().urls()[0].toLocalFile()
+        try:
+            self.image_procces(image_path)
+        except Exception as e:
+            self.show_error_message(f"The request cannot be executed, this is an incorrect file type.", 0)
+
+    def load_image(self, image_path):
+        try:
+            self.image_procces(image_path)
+        except Exception as e:
+            self.show_error_message(f"Destructive failure, this is an incorrect file type.", 1)
+            self.open_image()
+
+    def save_image(self):
+        options = QFileDialog.Options()
+        file_name, _ = QFileDialog.getSaveFileName(self, "Сохранить изображение", "",
+                                                   "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)", options=options)
+        if file_name:
+            if self.image_array_full is not None:
+                image_array = self.correction_applay(self.image_array_full)
+                image_pil = Image.fromarray(image_array, 'RGBA')
+                image_pil.save(file_name, 'PNG')
+            else:
+                self.show_error_message("The working space of the application does \nnot contain an image.", 1)
+
+    def show_error_message(self, message, qicon):
+        icon = [QMessageBox.Critical, QMessageBox.Warning]
+        error_box = QMessageBox(self)
+
+        style_sheet = """
+                QLabel {
+                    color: rgb(0, 0, 0);
+                    background-color: white;
+                    border: none;
+                }
+
+                QMessageBox {
+                    background-color: white;
+                    color: red;
+                }
+                QMessageBox QPushButton {
+                    width: 86px;
+                    height: 18px;
+                    background-color: rgb(225, 225, 225);
+                    color: black;
+                    border: 2px solid rgb(0, 120, 215);
+                }
+                QMessageBox QPushButton:hover {
+                    width: 86px;
+                    height: 18px;
+                    background-color: rgb(229, 241, 251);
+                    color: black;
+                    border: 1px solid rgb(0, 120, 215);
+                }
+                QMessageBox QPushButton:pressed {
+                    width: 86px;
+                    height: 18px;
+                    background-color: rgb(219, 231, 241);
+                    color: black;
+                    border: 1px solid rgb(0, 120, 215);
+                }
+            """
+        error_box.setStyleSheet(style_sheet)
+        error_box.setIcon(icon[qicon])
+        error_box.setWindowTitle("ColorLAB (Utility)")
+        error_box.setText(message)
+        error_box.setWindowIcon(QIcon("icons\\colorlab1111.png"))
+        error_box.setStandardButtons(QMessageBox.Ok)
+        error_box.exec_()
+
+    def correction_applay(self, image_array):
+        # Копируем массив изображения
+        corrected_image_array = image_array.copy()
+
+        # Применяем коррекцию параметров
+        corrected_image_array = self.apply_temperature(corrected_image_array)
+        corrected_image_array = self.apply_tint(corrected_image_array)
+
+        corrected_image_array = self.apply_exposure(corrected_image_array)
+        corrected_image_array = self.apply_contrast(corrected_image_array)
+        corrected_image_array = self.apply_white(corrected_image_array)
+        corrected_image_array = self.apply_black(corrected_image_array)
+        corrected_image_array = self.apply_sharpness(corrected_image_array)
+        corrected_image_array = self.apply_saturation(corrected_image_array)
+
+        corrected_image_array = self.apply_blur(corrected_image_array)
+        corrected_image_array = self.apply_bloom(corrected_image_array)
+        corrected_image_array = self.apply_grain(corrected_image_array)
+        corrected_image_array = self.apply_vignette(corrected_image_array)
+
+        return corrected_image_array
+
+    def update_image(self):
+        if self.image_array is not None:
+            corrected_image_array = self.correction_applay(self.image_array)
+
+            # массив в Qt и альфой
+            height, width, channel = corrected_image_array.shape
+            bytes_per_line = 4 * width  # 4 канала для RGBA
+            q_image = QImage(corrected_image_array.data, width, height, bytes_per_line, QImage.Format_RGBA8888)
+
+            self.setPixmap(QPixmap.fromImage(q_image))
+
+    # WB
+    def apply_temperature(self, image_array):
+        if self.temperature != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            if self.temperature > 0:
+                kelvin_matrix = np.array([[1, -0.1 * (self.temperature/20), 0], [0, 1, 0], [0, 0.1 * (self.temperature/10), 1]])
+            else:
+                kelvin_matrix = np.array([[1, -0.2 * (self.temperature/15), 0], [0, 1, 0], [0, 0, 1]])
+            image_rgb = cv2.transform(image_rgb, kelvin_matrix)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    def apply_tint(self, image_array):
+        if self.tint != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            if self.tint > 0:
+                tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint/50)], [0.2 * (self.tint/50), 0, 1]])
+            else:
+                tint_matrix = np.array([[1, 0, 0], [0, 1, -0.2 * (self.tint / 50)], [0, 0, 1]])
+            image_rgb = cv2.transform(image_rgb, tint_matrix)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    # BC
+    def apply_exposure(self, image_array):
+        if self.exposure != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_rgb = cv2.merge((r, g, b))
+            image_rgb = cv2.convertScaleAbs(image_rgb, alpha=(1 + self.exposure / 100), beta=0)
+            b, g, r = cv2.split(image_rgb)
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    def apply_contrast(self, image_array):
+        if self.contrast != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 32, 64, 96, 128, 160, 192, 224, 255]
+            lut_out = [0, 32-self.contrast/6.25, 64-self.contrast/12.5, 96-self.contrast/25, 128,
+                       160+self.contrast/25, 192+self.contrast/12.5, 224+self.contrast/6.25, 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_white(self, image_array):
+        if self.white != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 51, 102, 153, 204, 255]
+            lut_out = [0, 51, 102+(self.white/10), 153+(self.white/5), 204+(self.white/4), 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_black(self, image_array):
+        if self.black != 0:
+            b, g, r, a = cv2.split(image_array)
+
+            lut_in = [0, 51, 102, 153, 204, 255]
+            lut_out = [0, 51 + (self.black / 10), 102 + (self.black / 15), 153 + (self.black / 25), 204, 255]
+            lut_8u = np.interp(np.arange(0, 256), lut_in, lut_out).astype(np.uint8)
+
+            r = cv2.LUT(r, lut_8u)
+            g = cv2.LUT(g, lut_8u)
+            b = cv2.LUT(b, lut_8u)
+
+            return cv2.merge((b, g, r, a))
+        else:
+            return image_array
+
+    def apply_sharpness(self, image_array):
+        if self.sharpness != 0:
+            blurred = cv2.GaussianBlur(image_array, (0, 0), 1)
+            return cv2.addWeighted(image_array, 1 + self.sharpness / 100, blurred, -self.sharpness / 100, 0)
+        else:
+            return image_array
+
+    def apply_saturation(self, image_array):
+        if self.saturation != 0:
+            b, g, r, a = cv2.split(image_array)
+            image_hsv = cv2.cvtColor(cv2.merge((r, g, b)), cv2.COLOR_BGR2HSV)
+            image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] * (1 + self.saturation/100), 0, 255)
+            b, g, r = cv2.split(cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR))
+            return cv2.merge((r, g, b, a))
+        else:
+            return image_array
+
+    # PF
+    def apply_blur(self, image_array):
+        if self.blur > 0:
+            return cv2.GaussianBlur(image_array, (0, 0), self.blur/10)
+        else:
+            return image_array
+
+    def apply_bloom(self, image_array):
+        if self.bloom != 0:
+            blurred = cv2.GaussianBlur(image_array, (0, 0), 8)
+            result = cv2.addWeighted(image_array, 1 - self.bloom/200, blurred, self.bloom/50, 0)
+            return result
+        else:
+            return image_array
+
+    def apply_grain(self, image_array):
+        if self.grain != 0:
+            bgr_image = image_array[:, :, :3]
+            alpha_channel = image_array[:, :, 3]
+
+            gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+            noise = np.random.normal(0, self.grain/2, gray_image.shape)
+            noise = cv2.GaussianBlur(noise, (0, 0), 0.5)
+            noise = np.expand_dims(noise, axis=-1)
+            noise = np.repeat(noise, 3, axis=-1)
+            noisy_bgr_image = bgr_image + noise
+            noisy_bgr_image = np.clip(noisy_bgr_image, 0, 255).astype(np.uint8)
+            corrected_image_array = np.dstack((noisy_bgr_image, alpha_channel))
+            return corrected_image_array
+        else:
+            return image_array
+
+    def apply_vignette(self, image_array):
+        if self.vignette != 0:
+            rows, cols = image_array.shape[:2]
+
+            X_resultant_kernel = cv2.getGaussianKernel(cols, 320)
+            Y_resultant_kernel = cv2.getGaussianKernel(rows, 200)
+            resultant_kernel = Y_resultant_kernel * X_resultant_kernel.T
+            mask = 255 * resultant_kernel / np.linalg.norm(resultant_kernel)
+            output = np.copy(image_array)
+            for i in range(3):
+                output[:, :, i] = output[:, :, i] * mask
+            if self.vignette > 0:
+                output = cv2.addWeighted(image_array, 1 + self.vignette / 100, output, -self.vignette / 100, 0)
+            else:
+                output = cv2.addWeighted(image_array, 1 + self.vignette / 100, output, -self.vignette / 60, 0)
+            return output
+        else:
+            return image_array
 
 
 class Ui_Form(object):
@@ -1472,7 +1815,6 @@ class Ui_Form(object):
         except:
             self.dragDrop_label.vignette = 0
             self.vignette_slider.setValue(0)
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

@@ -1,3 +1,5 @@
+LOG 5 : All image correction algorithms are implemented.
+LOG 4 : Implemented image import for real-time preview.
 LOG 3 : Graphical resources have been added for the graphical interface and the application window.
 LOG 2 : The programming interface at the GUI level is fully implemented.
 LOG 1 : The graphical interface of the application has been fully implemented.
